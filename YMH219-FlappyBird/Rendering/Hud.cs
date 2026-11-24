@@ -25,6 +25,7 @@ public class Hud
         _time += dt;
         _levelBannerTime = Math.Max(0, _levelBannerTime - dt);
         _popTime = Math.Max(0, _popTime - dt);
+        _toastTime = Math.Max(0, _toastTime - dt);
     }
 
     /// <summary>Yeni oyunda animasyonları sıfırlar.</summary>
@@ -40,7 +41,7 @@ public class Hud
     /// <summary>
     /// Üst köşelerdeki bilgi kapsülleri: solda seviye ve zorluk, sağda en yüksek skor.
     /// </summary>
-    public void DrawTopBar(Graphics g, int level, int highScore, string difficulty)
+    public void DrawTopBar(Graphics g, int level, int highScore, string difficulty, bool soundOn)
     {
         DrawPill(g, new RectangleF(12, 12, 112, 32), $"SEVİYE {level}", Color.FromArgb(60, 135, 220));
         DrawingHelper.DrawOutlinedText(g, difficulty, 13f, new PointF(68, 56),
@@ -48,6 +49,50 @@ public class Hud
 
         var bestRect = new RectangleF(GameSettings.WorldWidth - 124, 12, 112, 32);
         DrawPill(g, bestRect, $"EN İYİ {highScore}", Color.FromArgb(235, 160, 40));
+
+        if (!soundOn)
+            DrawMutedIcon(g, new PointF(GameSettings.WorldWidth - 30, 62));
+    }
+
+    /// <summary>Ses kapalıyken üstü çizili hoparlör simgesi.</summary>
+    private static void DrawMutedIcon(Graphics g, PointF c)
+    {
+        PointF[] speaker =
+        {
+            new(c.X - 10, c.Y - 4), new(c.X - 5, c.Y - 4), new(c.X + 1, c.Y - 10),
+            new(c.X + 1, c.Y + 10), new(c.X - 5, c.Y + 4), new(c.X - 10, c.Y + 4)
+        };
+        using (var fill = new SolidBrush(Color.White))
+        using (var edge = new Pen(Color.FromArgb(160, 20, 30, 60), 2f) { LineJoin = LineJoin.Round })
+        {
+            g.DrawPolygon(edge, speaker);
+            g.FillPolygon(fill, speaker);
+        }
+        using var cross = new Pen(Color.FromArgb(235, 70, 60), 3f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+        g.DrawLine(cross, c.X + 5, c.Y - 5, c.X + 13, c.Y + 5);
+        g.DrawLine(cross, c.X + 13, c.Y - 5, c.X + 5, c.Y + 5);
+    }
+
+    private string _toastText = "";
+    private float _toastTime;
+
+    /// <summary>Ekranın altında kısa süreli bilgi mesajı (ör. "Ses kapalı").</summary>
+    public void ShowToast(string text)
+    {
+        _toastText = text;
+        _toastTime = 1.3f;
+    }
+
+    public void DrawToast(Graphics g)
+    {
+        if (_toastTime <= 0) return;
+        float alpha = Math.Min(1f, _toastTime / 0.3f);
+        var r = new RectangleF(GameSettings.WorldWidth / 2f - 80, GameSettings.GroundY - 60, 160, 38);
+        using (GraphicsPath path = DrawingHelper.RoundedRect(r, 19))
+        using (var fill = new SolidBrush(Color.FromArgb((int)(200 * alpha), 20, 25, 45)))
+            g.FillPath(fill, path);
+        DrawingHelper.DrawOutlinedText(g, _toastText, 17f, new PointF(r.X + r.Width / 2f, r.Y + r.Height / 2f + 1),
+            DrawingHelper.WithAlpha(Color.White, alpha), Color.Empty, 0f, heavy: false, shadow: false);
     }
 
     /// <summary>Yarı saydam, yuvarlak uçlu bilgi kapsülü.</summary>

@@ -43,6 +43,13 @@ public partial class Form1 : Form
         // Menüden Çıkış seçilince pencereyi kapat
         _game.ExitRequested += (_, _) => Close();
 
+        // Kapanırken zamanlayıcıyı durdur ve ses kaynaklarını bırak
+        FormClosed += (_, _) =>
+        {
+            _timer.Stop();
+            _game.Dispose();
+        };
+
         Shown += (_, _) =>
         {
             _panel.Focus();

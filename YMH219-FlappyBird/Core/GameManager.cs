@@ -10,7 +10,7 @@ namespace FlappyBird.Core;
 /// Durumlar: Menu → Ready → Playing ⇄ Paused → GameOver → (Ready | Menu)
 /// Form yalnızca girdileri buraya iletir ve her karede Update + Draw çağırır.
 /// </summary>
-public class GameManager
+public class GameManager : IDisposable
 {
     // Kuşun oyundaki sabit yatay konumu ve başlangıç yüksekliği
     public const float BirdStartX = 110f;
@@ -60,11 +60,17 @@ public class GameManager
     private float _gameOverTimer;
 
     private readonly HighScoreService _highScores;
+    private readonly SoundService _sound;
+
+    /// <summary>Ses açık mı? (M tuşu ile değişir)</summary>
+    public bool IsSoundEnabled => _sound.IsEnabled;
 
     /// <param name="highScores">En yüksek skor servisi (testlerde geçici dosya verilebilir).</param>
-    public GameManager(HighScoreService? highScores = null)
+    /// <param name="sound">Ses servisi (testlerde sessiz servis verilebilir).</param>
+    public GameManager(HighScoreService? highScores = null, SoundService? sound = null)
     {
         _highScores = highScores ?? new HighScoreService();
+        _sound = sound ?? new SoundService();
         Bird = new Bird(BirdStartX, BirdStartY);
 
         for (int i = 0; i < PipePairCount; i++)
@@ -153,6 +159,7 @@ public class GameManager
         _particles.EmitExplosion(Bird.CenterX, Bird.CenterY, Bird.FeatherColor);
         _effects.Shake(0.4f, 10f);
         _effects.Flash();
+        _sound.Play(SoundEffect.Hit);
     }
 
     private void ApplySettingsToBird()
@@ -207,6 +214,14 @@ public class GameManager
     /// <summary>Klavye tuşlarını duruma göre işler (Form KeyDown olayından çağrılır).</summary>
     public void HandleKeyDown(Keys key)
     {
+        // M her ekranda sesi açar/kapatır
+        if (key == Keys.M)
+        {
+            bool on = _sound.Toggle();
+            _hud.ShowToast(on ? "Ses açık" : "Ses kapalı");
+            return;
+        }
+
         switch (State)
         {
             case GameState.Menu:
@@ -278,6 +293,7 @@ public class GameManager
         if (State == GameState.Playing)
         {
             Bird.Jump();
+            _sound.Play(SoundEffect.Jump);
             _particles.EmitJumpDust(Bird.X + 6, Bird.CenterY + 6, Bird.FeatherColor);
         }
     }
@@ -366,6 +382,8 @@ public class GameManager
                 _hud.TriggerScorePop();
                 if (levelUp)
                     OnLevelUp();
+                else
+                    _sound.Play(SoundEffect.Score);
             }
         }
     }
@@ -380,6 +398,7 @@ public class GameManager
         _background.SetLevel(Score.Level);
         _hud.ShowLevelUp(Score.Level);
         _particles.EmitConfetti();
+        _sound.Play(SoundEffect.LevelUp);
     }
 
     /// <summary>
@@ -424,8 +443,12 @@ public class GameManager
         g.Restore(world);
 
         DrawOverlay(g);
+        _hud.DrawToast(g);
         _effects.DrawFlash(g);
     }
+
+    /// <summary>Ses kaynaklarını serbest bırakır (form kapanırken çağrılır).</summary>
+    public void Dispose() => _sound.Dispose();
 
     /// <summary>Duruma göre menü, HUD ve bilgi katmanlarını çizer.</summary>
     private void DrawOverlay(Graphics g)
@@ -438,7 +461,7 @@ public class GameManager
 
         // Oyun ekranlarında ortak HUD: seviye, en iyi skor ve büyük skor
         string difficulty = Settings.Difficulty.ToString().ToUpper(new System.Globalization.CultureInfo("tr-TR"));
-        _hud.DrawTopBar(g, Score.Level, Score.HighScore, difficulty);
+        _hud.DrawTopBar(g, Score.Level, Score.HighScore, difficulty, _sound.IsEnabled);
         if (!_gameOverPanel.IsVisible)
             _hud.DrawScore(g, Score.Score); // panel açıkken skor panelde gösterilir
 
