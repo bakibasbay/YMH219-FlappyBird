@@ -21,8 +21,6 @@ public class GameManager : IDisposable
 
     // Boşluğun ekran kenarlarına ve zemine olan en küçük mesafesi
     private const float GapMargin = 60f;
-    // Ardışık iki boşluk arasındaki en büyük yükseklik farkı (adil oyun için)
-    private const float MaxGapShift = 190f;
 
     /// <summary>Oyunun şu anki durumu.</summary>
     public GameState State { get; private set; } = GameState.Menu;
@@ -61,6 +59,10 @@ public class GameManager : IDisposable
 
     private readonly HighScoreService _highScores;
     private readonly SoundService _sound;
+    private readonly Autopilot _autopilot = new();
+
+    /// <summary>Demo otopilotu açık mı? (F2)</summary>
+    public bool IsAutopilotEnabled => _autopilot.IsEnabled;
 
     /// <summary>Ses açık mı? (M tuşu ile değişir)</summary>
     public bool IsSoundEnabled => _sound.IsEnabled;
@@ -128,6 +130,8 @@ public class GameManager : IDisposable
         Bird.ResetTo(BirdStartX, BirdStartY);
         ResetPipes();
         Score.Reset(_highScores.GetHighScore(Settings.Difficulty));
+        if (_autopilot.IsEnabled)
+            Score.MarkAssisted();
         _particles.Clear();
         _effects.Reset();
         _hud.Reset();
@@ -153,7 +157,9 @@ public class GameManager : IDisposable
         Bird.Die();
 
         // Rekor kırıldıysa dosyaya kaydet (hata olursa oyun devam eder)
-        _highScores.TrySetHighScore(Settings.Difficulty, Score.Score);
+        // Otopilotla yapılan skor rekor sayılmaz
+        if (!Score.IsAssisted)
+            _highScores.TrySetHighScore(Settings.Difficulty, Score.Score);
 
         // Çarpışma efektleri: patlama, ekran sarsıntısı ve beyaz flaş
         _particles.EmitExplosion(Bird.CenterX, Bird.CenterY, Bird.FeatherColor);
@@ -194,8 +200,8 @@ public class GameManager : IDisposable
         float half = Settings.PipeGap / 2f;
         float min = GapMargin + half;
         float max = GameSettings.GroundY - GapMargin - half;
-        float low = Math.Max(min, previous - MaxGapShift);
-        float high = Math.Min(max, previous + MaxGapShift);
+        float low = Math.Max(min, previous - Settings.MaxGapShift);
+        float high = Math.Min(max, previous + Settings.MaxGapShift);
         return low + (float)_random.NextDouble() * (high - low);
     }
 
@@ -219,6 +225,16 @@ public class GameManager : IDisposable
         {
             bool on = _sound.Toggle();
             _hud.ShowToast(on ? "Ses açık" : "Ses kapalı");
+            return;
+        }
+
+        // F2: demo otopilotu aç/kapa (açıldığı oyunun skoru rekor sayılmaz)
+        if (key == Keys.F2)
+        {
+            _autopilot.IsEnabled = !_autopilot.IsEnabled;
+            if (_autopilot.IsEnabled && State is GameState.Ready or GameState.Playing or GameState.Paused)
+                Score.MarkAssisted();
+            _hud.ShowToast(_autopilot.IsEnabled ? "Otopilot açık" : "Otopilot kapalı");
             return;
         }
 
@@ -327,9 +343,13 @@ public class GameManager : IDisposable
 
             case GameState.Ready:
                 Bird.Update(dt); // ilk zıplamayı beklerken süzülür
+                if (_autopilot.IsEnabled)
+                    Flap(); // otopilot oyunu kendisi başlatır
                 break;
 
             case GameState.Playing:
+                if (_autopilot.ShouldJump(Bird, Pipes, dt))
+                    Flap();
                 Bird.Update(dt);
                 UpdatePipes(dt);
                 CheckScore();
@@ -349,7 +369,7 @@ public class GameManager : IDisposable
                 // Kuş yere indikten kısa süre sonra (en geç 1 sn) sonuç paneli açılır
                 _gameOverTimer += dt;
                 if (!_gameOverPanel.IsVisible && (_gameOverTimer > 1f || (Bird.IsOnGround && _gameOverTimer > 0.45f)))
-                    _gameOverPanel.Show(Score.Score, Score.HighScore, Score.IsNewRecord, Score.Medal);
+                    _gameOverPanel.Show(Score.Score, Score.HighScore, Score.IsNewRecord, Score.Medal, Score.IsAssisted);
                 _gameOverPanel.Update(dt);
                 break;
 
@@ -473,6 +493,8 @@ public class GameManager : IDisposable
 
             case GameState.Playing:
                 _hud.DrawLevelBanner(g);
+                if (_autopilot.IsEnabled)
+                    _hud.DrawAutopilotBadge(g);
                 break;
 
             case GameState.Paused:

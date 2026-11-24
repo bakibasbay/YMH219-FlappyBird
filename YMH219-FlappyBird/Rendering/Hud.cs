@@ -73,6 +73,14 @@ public class Hud
         g.DrawLine(cross, c.X + 13, c.Y - 5, c.X + 5, c.Y + 5);
     }
 
+    /// <summary>Otopilot açıkken skorun altında yanıp sönen küçük etiket.</summary>
+    public void DrawAutopilotBadge(Graphics g)
+    {
+        float alpha = 0.55f + 0.45f * MathF.Sin(_time * 4f);
+        DrawingHelper.DrawOutlinedText(g, "OTOPİLOT (F2)", 14f, new PointF(GameSettings.WorldWidth / 2f, 146),
+            DrawingHelper.WithAlpha(Color.FromArgb(150, 255, 200), alpha), DrawingHelper.WithAlpha(Color.FromArgb(20, 60, 40), alpha), 3.5f, shadow: false);
+    }
+
     private string _toastText = "";
     private float _toastTime;
 

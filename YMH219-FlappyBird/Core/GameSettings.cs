@@ -38,6 +38,12 @@ public class GameSettings
     /// <summary>Ardışık iki boru çifti arasındaki yatay mesafe.</summary>
     public float PipeSpacing { get; init; } = 220f;
 
+    /// <summary>
+    /// Ardışık iki boşluk arasındaki en büyük yükseklik farkı.
+    /// Kuşun zamanında yükselip alçalabilmesi için sınırlanır (adil oyun).
+    /// </summary>
+    public float MaxGapShift { get; init; } = 160f;
+
     /// <summary>Her seviyede boru hızına eklenen oran (0.08 = %8).</summary>
     public float SpeedIncreasePerLevel { get; init; } = 0.08f;
 
@@ -65,7 +71,8 @@ public class GameSettings
             MaxFallSpeed = 650f,
             BasePipeSpeed = 135f,
             PipeGap = 200f,
-            PipeSpacing = 240f
+            PipeSpacing = 240f,
+            MaxGapShift = 180f
         },
         Difficulty.Zor => new GameSettings
         {
@@ -76,7 +83,8 @@ public class GameSettings
             MaxFallSpeed = 760f,
             BasePipeSpeed = 190f,
             PipeGap = 148f,
-            PipeSpacing = 205f
+            PipeSpacing = 205f,
+            MaxGapShift = 135f
         },
         _ => new GameSettings
         {
