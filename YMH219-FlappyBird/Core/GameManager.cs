@@ -22,13 +22,71 @@ public class GameManager
     /// <summary>Oyuncunun kuşu.</summary>
     public Bird Bird { get; }
 
+    /// <summary>Ekranda aynı anda dolaşan boru çifti sayısı (föy: en az 2).</summary>
+    public const int PipePairCount = 3;
+
+    // Boşluğun ekran kenarlarına ve zemine olan en küçük mesafesi
+    private const float GapMargin = 60f;
+    // Ardışık iki boşluk arasındaki en büyük yükseklik farkı (adil oyun için)
+    private const float MaxGapShift = 190f;
+
+    /// <summary>Sağdan sola kayan boru çiftleri.</summary>
+    public List<PipePair> Pipes { get; } = new();
+
+    /// <summary>Boruların (ve zeminin) şu anki kayma hızı.</summary>
+    public float PipeSpeed { get; private set; }
+
     /// <summary>Oyun başladığından beri geçen toplam süre (animasyonlar için).</summary>
     public float TotalTime { get; private set; }
+
+    private readonly Random _random = new();
 
     public GameManager()
     {
         Bird = new Bird(BirdStartX, BirdStartY);
         ApplySettingsToBird();
+
+        for (int i = 0; i < PipePairCount; i++)
+            Pipes.Add(new PipePair(0, GameSettings.GroundY / 2f, Settings.PipeGap));
+        ResetPipes();
+    }
+
+    /// <summary>Boruları ekranın sağına, eşit aralıklarla diz.</summary>
+    private void ResetPipes()
+    {
+        PipeSpeed = Settings.BasePipeSpeed;
+        float x = GameSettings.WorldWidth + 80f;
+        float gap = GameSettings.GroundY / 2f;
+        foreach (PipePair pair in Pipes)
+        {
+            gap = RandomGapCenter(gap);
+            pair.Reposition(x, gap, Settings.PipeGap);
+            x += Settings.PipeSpacing;
+        }
+    }
+
+    /// <summary>
+    /// Rastgele bir boşluk yüksekliği üretir. Bir önceki boşluktan
+    /// çok uzak olmaması sağlanır, böylece geçilemez dizilim oluşmaz.
+    /// </summary>
+    private float RandomGapCenter(float previous)
+    {
+        float half = Settings.PipeGap / 2f;
+        float min = GapMargin + half;
+        float max = GameSettings.GroundY - GapMargin - half;
+        float low = Math.Max(min, previous - MaxGapShift);
+        float high = Math.Min(max, previous + MaxGapShift);
+        return low + (float)_random.NextDouble() * (high - low);
+    }
+
+    /// <summary>
+    /// Ekrandan çıkan boru çiftini en sağdaki çiftin arkasına taşır
+    /// ve yeni rastgele boşluk verir (föy: yeniden konumlandırma).
+    /// </summary>
+    private void RecyclePipe(PipePair pair)
+    {
+        PipePair last = Pipes.MaxBy(p => p.X)!;
+        pair.Reposition(last.X + Settings.PipeSpacing, RandomGapCenter(last.GapCenterY), Settings.PipeGap);
     }
 
     private void ApplySettingsToBird()
@@ -74,7 +132,22 @@ public class GameManager
         TotalTime += dt;
 
         if (State == GameState.Playing)
+        {
             Bird.Update(dt);
+            UpdatePipes(dt);
+        }
+    }
+
+    /// <summary>Boruları kaydırır, ekrandan çıkanları yeniden konumlandırır.</summary>
+    private void UpdatePipes(float dt)
+    {
+        foreach (PipePair pair in Pipes)
+        {
+            pair.Speed = PipeSpeed;
+            pair.Update(dt);
+            if (pair.IsOffScreen)
+                RecyclePipe(pair);
+        }
     }
 
     /// <summary>Tüm sahneyi verilen Graphics nesnesine çizer.</summary>
@@ -88,7 +161,10 @@ public class GameManager
             g.FillRectangle(sky, skyRect);
         }
 
-        // Zemin
+        foreach (PipePair pair in Pipes)
+            pair.Draw(g);
+
+        // Zemin (boruların alt ucunu örter)
         using (var ground = new SolidBrush(Color.FromArgb(222, 200, 140)))
         {
             g.FillRectangle(ground, 0, GameSettings.GroundY, GameSettings.WorldWidth, GameSettings.GroundHeight);
