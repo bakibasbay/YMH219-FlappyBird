@@ -262,6 +262,11 @@ public class GameManager
         {
             case GameState.Menu:
                 _menu.Update(dt);
+                Bird.Update(dt); // menüde süzülür
+                break;
+
+            case GameState.Ready:
+                Bird.Update(dt); // ilk zıplamayı beklerken süzülür
                 break;
 
             case GameState.Playing:
@@ -276,7 +281,7 @@ public class GameManager
                 Bird.Update(dt);
                 break;
 
-            // Ready: kuş süzülür; Paused: hiçbir şey ilerlemez
+            // Paused: hiçbir şey ilerlemez
         }
     }
 
