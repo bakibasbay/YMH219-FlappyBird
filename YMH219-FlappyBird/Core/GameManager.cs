@@ -95,6 +95,8 @@ public class GameManager
         State = GameState.Menu;
         Bird.ResetTo(GameSettings.WorldWidth / 2f - Bird.DefaultWidth / 2f, 225f);
         PipeSpeed = Settings.BasePipeSpeed;
+        _particles.Clear();
+        _background.SetLevel(1);
     }
 
     /// <summary>
@@ -108,6 +110,8 @@ public class GameManager
         Score.Reset(Score.HighScore);
         _particles.Clear();
         _effects.Reset();
+        _hud.Reset();
+        _background.SetLevel(1); // gökyüzü gündüze döner
         State = GameState.Ready;
     }
 
@@ -325,10 +329,24 @@ public class GameManager
             if (!pair.Scored && pair.CenterX < Bird.CenterX)
             {
                 pair.Scored = true;
-                Score.AddPoint();
+                bool levelUp = Score.AddPoint();
                 _particles.EmitScoreSparkle(Bird.CenterX + 10, Bird.Y - 4);
+                if (levelUp)
+                    OnLevelUp();
             }
         }
+    }
+
+    /// <summary>
+    /// Seviye atlandı: borular hızlanır, gökyüzü bir sonraki gün saatine geçer,
+    /// ekranda "SEVİYE n!" yazısı ve konfeti görünür.
+    /// </summary>
+    private void OnLevelUp()
+    {
+        PipeSpeed = Settings.GetPipeSpeed(Score.Level);
+        _background.SetLevel(Score.Level);
+        _hud.ShowLevelUp(Score.Level);
+        _particles.EmitConfetti();
     }
 
     /// <summary>
@@ -392,6 +410,7 @@ public class GameManager
 
             case GameState.Playing:
                 _hud.DrawScore(g, Score.Score);
+                _hud.DrawLevelBanner(g);
                 break;
 
             case GameState.Paused:

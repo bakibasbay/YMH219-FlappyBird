@@ -11,9 +11,51 @@ public class Hud
 {
     private static readonly Color OutlineDark = Color.FromArgb(60, 40, 30);
 
-    private float _time;
+    private const float LevelBannerDuration = 1.8f;
 
-    public void Update(float dt) => _time += dt;
+    private float _time;
+    private float _levelBannerTime; // "SEVİYE n!" yazısının kalan gösterim süresi
+    private int _bannerLevel;
+
+    public void Update(float dt)
+    {
+        _time += dt;
+        _levelBannerTime = Math.Max(0, _levelBannerTime - dt);
+    }
+
+    /// <summary>Yeni oyunda animasyonları sıfırlar.</summary>
+    public void Reset()
+    {
+        _levelBannerTime = 0;
+    }
+
+    /// <summary>Ekranın ortasında kısa süreli "SEVİYE n!" yazısı başlatır.</summary>
+    public void ShowLevelUp(int level)
+    {
+        _bannerLevel = level;
+        _levelBannerTime = LevelBannerDuration;
+    }
+
+    /// <summary>Seviye yazısı: yaylı büyüyerek gelir, sonunda saydamlaşarak kaybolur.</summary>
+    public void DrawLevelBanner(Graphics g)
+    {
+        if (_levelBannerTime <= 0) return;
+
+        float elapsed = LevelBannerDuration - _levelBannerTime;
+        float scale = 0.3f + 0.7f * DrawingHelper.EaseOutBack(elapsed / 0.4f);
+        float alpha = _levelBannerTime < 0.4f ? _levelBannerTime / 0.4f : 1f;
+
+        GraphicsState state = g.Save();
+        g.TranslateTransform(GameSettings.WorldWidth / 2f, 235);
+        g.ScaleTransform(scale, scale);
+        DrawingHelper.DrawOutlinedText(g, $"SEVİYE {_bannerLevel}!", 54f, PointF.Empty,
+            DrawingHelper.WithAlpha(Color.FromArgb(120, 235, 255), alpha),
+            DrawingHelper.WithAlpha(Color.FromArgb(20, 40, 90), alpha), 10f);
+        DrawingHelper.DrawOutlinedText(g, "Hız arttı!", 22f, new PointF(0, 48),
+            DrawingHelper.WithAlpha(Color.White, alpha),
+            DrawingHelper.WithAlpha(Color.FromArgb(20, 40, 90), alpha), 5f, heavy: false);
+        g.Restore(state);
+    }
 
     /// <summary>Ekranın üst ortasında büyük, konturlu skor.</summary>
     public void DrawScore(Graphics g, int score)

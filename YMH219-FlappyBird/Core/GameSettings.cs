@@ -38,6 +38,19 @@ public class GameSettings
     /// <summary>Ardışık iki boru çifti arasındaki yatay mesafe.</summary>
     public float PipeSpacing { get; init; } = 220f;
 
+    /// <summary>Her seviyede boru hızına eklenen oran (0.08 = %8).</summary>
+    public float SpeedIncreasePerLevel { get; init; } = 0.08f;
+
+    /// <summary>Hızın başlangıç hızına göre en fazla kaç katına çıkabileceği.</summary>
+    public const float MaxSpeedMultiplier = 1.7f;
+
+    /// <summary>Verilen seviyedeki boru hızı: her seviyede biraz artar, bir sınırda durur.</summary>
+    public float GetPipeSpeed(int level)
+    {
+        float multiplier = 1f + (Math.Max(1, level) - 1) * SpeedIncreasePerLevel;
+        return BasePipeSpeed * Math.Min(MaxSpeedMultiplier, multiplier);
+    }
+
     /// <summary>
     /// Seçilen zorluğa göre ayar nesnesi oluşturur (fabrika metodu).
     /// </summary>
