@@ -60,8 +60,28 @@ public class GameManager
 
         _menu.StartRequested += StartNewGame;
         _menu.ExitRequested += () => ExitRequested?.Invoke(this, EventArgs.Empty);
+        _menu.DifficultySelected += SetDifficulty;
 
+        SetDifficulty(Difficulty.Normal);
         GoToMenu();
+    }
+
+    /// <summary>
+    /// Zorluğu değiştirir: yeni fizik ayarları bir sonraki oyunda kullanılır.
+    /// </summary>
+    public void SetDifficulty(Difficulty difficulty)
+    {
+        Settings = GameSettings.Create(difficulty);
+        _menu.SetSelectedDifficulty(difficulty);
+        _menu.DifficultyDescription = Settings.Description;
+    }
+
+    /// <summary>Menüde sol/sağ ok ile zorluklar arasında dolaşır.</summary>
+    private void CycleDifficulty(int direction)
+    {
+        int count = Enum.GetValues<Difficulty>().Length;
+        int next = ((int)Settings.Difficulty + direction + count) % count;
+        SetDifficulty((Difficulty)next);
     }
 
     // ================= Durum geçişleri =================
@@ -159,6 +179,11 @@ public class GameManager
             case GameState.Menu:
                 if (key == Keys.Enter || key == Keys.Space) StartNewGame();
                 else if (key == Keys.Escape) ExitRequested?.Invoke(this, EventArgs.Empty);
+                else if (key == Keys.Left) CycleDifficulty(-1);
+                else if (key == Keys.Right) CycleDifficulty(+1);
+                else if (key == Keys.D1) SetDifficulty(Difficulty.Kolay);
+                else if (key == Keys.D2) SetDifficulty(Difficulty.Normal);
+                else if (key == Keys.D3) SetDifficulty(Difficulty.Zor);
                 break;
 
             case GameState.Ready:

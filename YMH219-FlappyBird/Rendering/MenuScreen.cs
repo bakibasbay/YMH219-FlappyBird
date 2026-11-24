@@ -18,8 +18,20 @@ public class MenuScreen
     /// <summary>Çıkış butonuna basıldığında.</summary>
     public event Action? ExitRequested;
 
+    /// <summary>Bir zorluk butonuna basıldığında.</summary>
+    public event Action<Difficulty>? DifficultySelected;
+
     public UiButton StartButton { get; }
     public UiButton ExitButton { get; }
+
+    /// <summary>Kolay / Normal / Zor butonları (enum sırasıyla).</summary>
+    public UiButton[] DifficultyButtons { get; }
+
+    /// <summary>Menüde vurgulanan (seçili) zorluk.</summary>
+    public Difficulty SelectedDifficulty { get; private set; } = Difficulty.Normal;
+
+    /// <summary>Seçili zorluğun açıklaması (GameManager tarafından atanır).</summary>
+    public string DifficultyDescription { get; set; } = "";
 
     private float _time;
 
@@ -32,6 +44,30 @@ public class MenuScreen
         ExitButton = new UiButton("ÇIKIŞ", new RectangleF(160, 556, 160, 46), Color.FromArgb(225, 85, 75)) { FontSize = 22 };
         StartButton.Clicked += () => StartRequested?.Invoke();
         ExitButton.Clicked += () => ExitRequested?.Invoke();
+
+        // Zorluk butonları yan yana: Kolay (yeşil), Normal (mavi), Zor (mor)
+        Color[] colors = { Color.FromArgb(80, 175, 95), Color.FromArgb(60, 135, 220), Color.FromArgb(160, 80, 200) };
+        Difficulty[] all = Enum.GetValues<Difficulty>();
+        DifficultyButtons = new UiButton[all.Length];
+        const float w = 120f, gap = 12f;
+        float startX = (GameSettings.WorldWidth - (w * all.Length + gap * (all.Length - 1))) / 2f;
+        for (int i = 0; i < all.Length; i++)
+        {
+            Difficulty d = all[i];
+            var button = new UiButton(d.ToString().ToUpper(new System.Globalization.CultureInfo("tr-TR")),
+                new RectangleF(startX + i * (w + gap), 340, w, 48), colors[i]) { FontSize = 20 };
+            button.Clicked += () => DifficultySelected?.Invoke(d);
+            DifficultyButtons[i] = button;
+        }
+        SetSelectedDifficulty(SelectedDifficulty);
+    }
+
+    /// <summary>Seçili zorluğu değiştirir ve ilgili butonu vurgular.</summary>
+    public void SetSelectedDifficulty(Difficulty difficulty)
+    {
+        SelectedDifficulty = difficulty;
+        for (int i = 0; i < DifficultyButtons.Length; i++)
+            DifficultyButtons[i].IsSelected = i == (int)difficulty;
     }
 
     /// <summary>Menüdeki tüm butonlar (fare kontrolü için).</summary>
@@ -39,6 +75,8 @@ public class MenuScreen
     {
         get
         {
+            foreach (UiButton b in DifficultyButtons)
+                yield return b;
             yield return StartButton;
             yield return ExitButton;
         }
@@ -72,6 +110,13 @@ public class MenuScreen
             g.FillPath(cardBrush, cardPath);
             g.DrawPath(cardPen, cardPath);
         }
+
+        // Zorluk başlığı ve seçili zorluğun açıklaması
+        float cx = GameSettings.WorldWidth / 2f;
+        DrawingHelper.DrawOutlinedText(g, "ZORLUK  (← / →)", 17f, new PointF(cx, 320),
+            Color.White, Color.FromArgb(150, 30, 60, 100), 3.5f, heavy: false);
+        DrawingHelper.DrawOutlinedText(g, DifficultyDescription, 15f, new PointF(cx, 420),
+            Color.FromArgb(40, 60, 90), Color.Empty, 0f, heavy: false, shadow: false);
 
         foreach (UiButton b in Buttons)
             b.Draw(g);
