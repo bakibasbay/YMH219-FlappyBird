@@ -1,4 +1,5 @@
 using FlappyBird.Core;
+using FlappyBird.Entities;
 using FlappyBird.Services;
 
 namespace FlappyBird.Tests;
@@ -71,6 +72,57 @@ public class GameManagerTests : IDisposable
         Assert.Equal(0, game.Score.Score);
         game.HandleKeyDown(Keys.Escape);
         Assert.Equal(GameState.Menu, game.State);
+    }
+
+    [Fact]
+    public void Borular_EkrandanCikincaSagdaRastgeleBoslukla_YenidenKonumlanir()
+    {
+        using var game = CreateGame();
+        game.StartNewGame();
+        game.HandleKeyDown(Keys.Space);
+
+        var spacing = game.Settings.PipeSpacing;
+        var previousX = game.Pipes.Select(p => p.X).ToArray();
+        var seenGaps = new HashSet<float>(game.Pipes.Select(p => p.GapCenterY));
+        int recycled = 0;
+
+        for (int frame = 0; frame < 15 * 60; frame++)
+        {
+            // Kuşu doğrudan sabitle: her karede önündeki boşluğun ortasına koy (oyun bitmesin)
+            float hitLeft = game.Bird.Hitbox.Left;
+            var ahead = game.Pipes.Where(p => p.Right + Pipe.CapOverhang > hitLeft).OrderBy(p => p.X).First();
+            game.Bird.Y = ahead.GapCenterY - game.Bird.Height / 2f;
+
+            game.Update(Dt);
+            Assert.Equal(GameState.Playing, game.State);
+            Assert.Equal(GameManager.PipePairCount, game.Pipes.Count);
+
+            for (int i = 0; i < game.Pipes.Count; i++)
+            {
+                PipePair p = game.Pipes[i];
+                if (p.X > previousX[i])
+                {
+                    // X arttıysa bu çift yeniden konumlandı: ekranın sağ dışında,
+                    // en sağdaki diğer çiftin bir aralık arkasında doğmalı
+                    recycled++;
+                    float otherMax = game.Pipes.Where(o => o != p).Max(o => o.X);
+                    Assert.True(p.X - Pipe.CapOverhang > GameSettings.WorldWidth, "Yeni boru ekranın dışında doğmalı");
+                    // Aynı karede listede sonra gelen çiftler bir adım daha kayabilir: 1 karelik tolerans
+                    Assert.Equal(otherMax + spacing, p.X, game.PipeSpeed * Dt + 0.5f);
+                    Assert.False(p.Scored);
+                    Assert.InRange(p.GapCenterY - p.GapSize / 2f, 0f, GameSettings.GroundY);
+                    Assert.InRange(p.GapCenterY + p.GapSize / 2f, 0f, GameSettings.GroundY);
+                    seenGaps.Add(p.GapCenterY);
+                }
+                // Ekrandan çıkan boru solda birikmemeli
+                Assert.True(p.Right + Pipe.CapOverhang > -game.PipeSpeed * Dt - 1f);
+                previousX[i] = p.X;
+            }
+        }
+
+        Assert.True(recycled >= 3, $"En az 3 yeniden konumlanma beklenirdi, olan: {recycled}");
+        // Yeniden konumlanan borular rastgele, farklı boşluk yükseklikleri almalı
+        Assert.True(seenGaps.Count > GameManager.PipePairCount);
     }
 
     public void Dispose()

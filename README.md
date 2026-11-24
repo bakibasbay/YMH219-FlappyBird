@@ -152,14 +152,15 @@ YMH219-FlappyBird/
 
 ## Testler
 
-`YMH219-FlappyBird.Tests` projesinde 29 birim testi vardır (`dotnet test`):
+`YMH219-FlappyBird.Tests` projesinde 30 birim testi vardır (`dotnet test`):
 - Skor artışı, her 5 puanda seviye atlama, rekor güncelleme
 - Madalya eşikleri (10 / 20 / 30)
 - Zorluk ayarlarının farkı, seviyeye göre hız artışı ve üst sınır
 - Kuşun zıplaması, yer çekimi, zeminde durması, hitbox'ın gövdeden küçük olması
 - Boru çiftinde boşluk/boru çarpışması ve ekrandan çıkma
 - En yüksek skorun dosyaya yazılıp okunması, düşük skorun rekoru ezmemesi, bozuk dosyada çökmeme
-- Durum makinesi: Menü → Hazır → Oynanıyor, duraklatma, R ile yeniden başlatma, Esc ile menü (pencere açmadan simülasyon)
+- Durum makinesi: Menü → Hazır → Oynanıyor, duraklatma, R ile yeniden başlatma, Esc ile menü
+- Ekrandan çıkan borunun sağda, rastgele boşlukla yeniden konumlanması (pencere açmadan simülasyon)
 
 ## Bilinen Sınırlamalar / Geliştirme Notları
 
