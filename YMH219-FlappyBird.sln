@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YMH219-FlappyBird", "YMH219-FlappyBird\YMH219-FlappyBird.csproj", "{CEA9CFB8-B4E2-4875-AD36-E3FAA26B9A85}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YMH219-FlappyBird.Tests", "YMH219-FlappyBird.Tests\YMH219-FlappyBird.Tests.csproj", "{FCDF85C4-3891-42F9-BFF0-D12F26A595CF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,18 @@ Global
 		{CEA9CFB8-B4E2-4875-AD36-E3FAA26B9A85}.Release|x64.Build.0 = Release|Any CPU
 		{CEA9CFB8-B4E2-4875-AD36-E3FAA26B9A85}.Release|x86.ActiveCfg = Release|Any CPU
 		{CEA9CFB8-B4E2-4875-AD36-E3FAA26B9A85}.Release|x86.Build.0 = Release|Any CPU
+		{FCDF85C4-3891-42F9-BFF0-D12F26A595CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FCDF85C4-3891-42F9-BFF0-D12F26A595CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FCDF85C4-3891-42F9-BFF0-D12F26A595CF}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{FCDF85C4-3891-42F9-BFF0-D12F26A595CF}.Debug|x64.Build.0 = Debug|Any CPU
+		{FCDF85C4-3891-42F9-BFF0-D12F26A595CF}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{FCDF85C4-3891-42F9-BFF0-D12F26A595CF}.Debug|x86.Build.0 = Debug|Any CPU
+		{FCDF85C4-3891-42F9-BFF0-D12F26A595CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FCDF85C4-3891-42F9-BFF0-D12F26A595CF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FCDF85C4-3891-42F9-BFF0-D12F26A595CF}.Release|x64.ActiveCfg = Release|Any CPU
+		{FCDF85C4-3891-42F9-BFF0-D12F26A595CF}.Release|x64.Build.0 = Release|Any CPU
+		{FCDF85C4-3891-42F9-BFF0-D12F26A595CF}.Release|x86.ActiveCfg = Release|Any CPU
+		{FCDF85C4-3891-42F9-BFF0-D12F26A595CF}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
