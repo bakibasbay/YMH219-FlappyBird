@@ -51,6 +51,8 @@ public class GameManager
     private readonly MenuScreen _menu = new();
     private readonly Hud _hud = new();
     private readonly Background _background = new();
+    private readonly ParticleSystem _particles = new();
+    private readonly ScreenEffects _effects = new();
 
     public GameManager()
     {
@@ -104,6 +106,8 @@ public class GameManager
         Bird.ResetTo(BirdStartX, BirdStartY);
         ResetPipes();
         Score.Reset(Score.HighScore);
+        _particles.Clear();
+        _effects.Reset();
         State = GameState.Ready;
     }
 
@@ -121,6 +125,11 @@ public class GameManager
     {
         State = GameState.GameOver;
         Bird.Die();
+
+        // Çarpışma efektleri: patlama, ekran sarsıntısı ve beyaz flaş
+        _particles.EmitExplosion(Bird.CenterX, Bird.CenterY, Bird.FeatherColor);
+        _effects.Shake(0.4f, 10f);
+        _effects.Flash();
     }
 
     private void ApplySettingsToBird()
@@ -237,7 +246,10 @@ public class GameManager
             State = GameState.Playing;
 
         if (State == GameState.Playing)
+        {
             Bird.Jump();
+            _particles.EmitJumpDust(Bird.X + 6, Bird.CenterY + 6, Bird.FeatherColor);
+        }
     }
 
     // ================= Döngü =================
@@ -256,6 +268,8 @@ public class GameManager
         {
             float scroll = State == GameState.GameOver ? 0f : PipeSpeed;
             _background.Update(dt, scroll);
+            _particles.Update(dt);
+            _effects.Update(dt);
         }
 
         switch (State)
@@ -277,8 +291,14 @@ public class GameManager
                 break;
 
             case GameState.GameOver:
-                // Ölen kuş zemine kadar düşmeye devam eder
+                // Ölen kuş zemine kadar düşmeye devam eder; yere çakılınca toz kalkar
+                bool wasInAir = !Bird.IsOnGround;
                 Bird.Update(dt);
+                if (wasInAir && Bird.IsOnGround)
+                {
+                    _particles.EmitGroundDust(Bird.CenterX, Bird.Bottom);
+                    _effects.Shake(0.15f, 4f);
+                }
                 break;
 
             // Paused: hiçbir şey ilerlemez
@@ -306,6 +326,7 @@ public class GameManager
             {
                 pair.Scored = true;
                 Score.AddPoint();
+                _particles.EmitScoreSparkle(Bird.CenterX + 10, Bird.Y - 4);
             }
         }
     }
@@ -330,7 +351,12 @@ public class GameManager
     /// <summary>Tüm sahneyi verilen Graphics nesnesine çizer.</summary>
     public void Draw(Graphics g)
     {
-        // Katman sırası: gökyüzü/parallax → borular → zemin → gece tonu → kuş → arayüz
+        // Sarsıntı: dünya katmanları rastgele küçük bir kaymayla çizilir (arayüz sabit kalır)
+        GraphicsState world = g.Save();
+        PointF shake = _effects.GetShakeOffset();
+        g.TranslateTransform(shake.X, shake.Y);
+
+        // Katman sırası: gökyüzü/parallax → borular → zemin → gece tonu → kuş → parçacıklar → arayüz
         _background.DrawSky(g);
 
         if (State != GameState.Menu)
@@ -343,8 +369,11 @@ public class GameManager
         _background.DrawNightTint(g);
 
         Bird.Draw(g);
+        _particles.Draw(g);
+        g.Restore(world);
 
         DrawOverlay(g);
+        _effects.DrawFlash(g);
     }
 
     /// <summary>Duruma göre menü, HUD ve bilgi katmanlarını çizer.</summary>

@@ -145,7 +145,8 @@ public class Background
     public void DrawSky(Graphics g)
     {
         // 1) Gökyüzü dikey gradyanı
-        var skyRect = new RectangleF(0, 0, GameSettings.WorldWidth, GameSettings.GroundY + 1);
+        // Ekran sarsıntısında kenarlarda boşluk kalmasın diye biraz taşırılarak çizilir
+        var skyRect = new RectangleF(-20, -20, GameSettings.WorldWidth + 40, GameSettings.GroundY + 21);
         using (var sky = new LinearGradientBrush(skyRect, PhaseColor(SkyTop), PhaseColor(SkyBottom), LinearGradientMode.Vertical))
             g.FillRectangle(sky, skyRect);
 
@@ -316,7 +317,7 @@ public class Background
 
         // Toprak ve kayan çapraz şeritler
         using (var dirt = new SolidBrush(Color.FromArgb(228, 204, 148)))
-            g.FillRectangle(dirt, 0, top, w, GameSettings.GroundHeight);
+            g.FillRectangle(dirt, -20, top, w + 40, GameSettings.GroundHeight + 20);
 
         float offset = _groundOffset % StripePeriod;
         using (var stripe = new SolidBrush(Color.FromArgb(214, 186, 128)))
@@ -333,7 +334,7 @@ public class Background
         }
 
         // Çimen şeridi
-        var grassRect = new RectangleF(0, top, w, GrassHeight);
+        var grassRect = new RectangleF(-20, top, w + 40, GrassHeight);
         using (var grass = new LinearGradientBrush(grassRect, Color.FromArgb(135, 215, 90), Color.FromArgb(80, 160, 55), LinearGradientMode.Vertical))
             g.FillRectangle(grass, grassRect);
 
@@ -352,9 +353,9 @@ public class Background
         }
 
         using (var light = new Pen(Color.FromArgb(185, 240, 130), 3f))
-            g.DrawLine(light, 0, top + 1.5f, w, top + 1.5f);
+            g.DrawLine(light, -20, top + 1.5f, w + 20, top + 1.5f);
         using (var edge = new Pen(Color.FromArgb(90, 70, 40), 2f))
-            g.DrawLine(edge, 0, top + GrassHeight + 1, w, top + GrassHeight + 1);
+            g.DrawLine(edge, -20, top + GrassHeight + 1, w + 20, top + GrassHeight + 1);
     }
 
     /// <summary>Gece olunca tüm sahneye hafif lacivert bir ton bindirir.</summary>

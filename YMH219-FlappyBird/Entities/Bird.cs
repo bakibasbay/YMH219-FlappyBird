@@ -35,6 +35,9 @@ public class Bird : GameObject
     private static readonly Color Beak = Color.FromArgb(255, 205, 45);
     private static readonly Color WingColor = Color.FromArgb(255, 205, 110);
 
+    /// <summary>Kuştan kopan tüy parçacıklarının rengi.</summary>
+    public static readonly Color FeatherColor = Color.FromArgb(255, 150, 60);
+
     /// <summary>Dikey hız (px/s). Negatif değer yukarı hareket demektir.</summary>
     public float VelocityY { get; private set; }
 
