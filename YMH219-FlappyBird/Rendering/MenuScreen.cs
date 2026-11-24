@@ -33,6 +33,9 @@ public class MenuScreen
     /// <summary>Seçili zorluğun açıklaması (GameManager tarafından atanır).</summary>
     public string DifficultyDescription { get; set; } = "";
 
+    /// <summary>Seçili zorluktaki en yüksek skor (dosyadan okunur).</summary>
+    public int BestScore { get; set; }
+
     private float _time;
 
     // Başlıktaki her harfin genişliği (ilk çizimde bir kez hesaplanır)
@@ -115,8 +118,10 @@ public class MenuScreen
         float cx = GameSettings.WorldWidth / 2f;
         DrawingHelper.DrawOutlinedText(g, "ZORLUK  (← / →)", 17f, new PointF(cx, 320),
             Color.White, Color.FromArgb(150, 30, 60, 100), 3.5f, heavy: false);
-        DrawingHelper.DrawOutlinedText(g, DifficultyDescription, 15f, new PointF(cx, 420),
+        DrawingHelper.DrawOutlinedText(g, DifficultyDescription, 15f, new PointF(cx, 412),
             Color.FromArgb(40, 60, 90), Color.Empty, 0f, heavy: false, shadow: false);
+        DrawingHelper.DrawOutlinedText(g, $"En iyi skor: {BestScore}", 16f, new PointF(cx, 440),
+            Color.FromArgb(255, 215, 70), Color.FromArgb(120, 70, 20), 3.5f, heavy: false, shadow: false);
 
         foreach (UiButton b in Buttons)
             b.Draw(g);

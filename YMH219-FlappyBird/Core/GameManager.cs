@@ -1,6 +1,7 @@
 using System.Drawing.Drawing2D;
 using FlappyBird.Entities;
 using FlappyBird.Rendering;
+using FlappyBird.Services;
 
 namespace FlappyBird.Core;
 
@@ -58,8 +59,12 @@ public class GameManager
     // Çarpışmadan sonra geçen süre (panel kuş düştükten sonra açılır)
     private float _gameOverTimer;
 
-    public GameManager()
+    private readonly HighScoreService _highScores;
+
+    /// <param name="highScores">En yüksek skor servisi (testlerde geçici dosya verilebilir).</param>
+    public GameManager(HighScoreService? highScores = null)
     {
+        _highScores = highScores ?? new HighScoreService();
         Bird = new Bird(BirdStartX, BirdStartY);
 
         for (int i = 0; i < PipePairCount; i++)
@@ -83,6 +88,7 @@ public class GameManager
         Settings = GameSettings.Create(difficulty);
         _menu.SetSelectedDifficulty(difficulty);
         _menu.DifficultyDescription = Settings.Description;
+        _menu.BestScore = _highScores.GetHighScore(difficulty);
     }
 
     /// <summary>Menüde sol/sağ ok ile zorluklar arasında dolaşır.</summary>
@@ -114,7 +120,7 @@ public class GameManager
         ApplySettingsToBird();
         Bird.ResetTo(BirdStartX, BirdStartY);
         ResetPipes();
-        Score.Reset(Score.HighScore);
+        Score.Reset(_highScores.GetHighScore(Settings.Difficulty));
         _particles.Clear();
         _effects.Reset();
         _hud.Reset();
@@ -138,6 +144,9 @@ public class GameManager
         State = GameState.GameOver;
         _gameOverTimer = 0;
         Bird.Die();
+
+        // Rekor kırıldıysa dosyaya kaydet (hata olursa oyun devam eder)
+        _highScores.TrySetHighScore(Settings.Difficulty, Score.Score);
 
         // Çarpışma efektleri: patlama, ekran sarsıntısı ve beyaz flaş
         _particles.EmitExplosion(Bird.CenterX, Bird.CenterY, Bird.FeatherColor);
