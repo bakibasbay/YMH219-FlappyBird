@@ -35,6 +35,10 @@ public partial class Form1 : Form
         _timer = new System.Windows.Forms.Timer(components) { Interval = 16 };
         _timer.Tick += Timer_Tick;
 
+        // Girdi olayları: klavye form üzerinden (KeyPreview), fare panel üzerinden
+        KeyDown += Form1_KeyDown;
+        _panel.MouseDown += Panel_MouseDown;
+
         Shown += (_, _) =>
         {
             _panel.Focus();
@@ -69,5 +73,20 @@ public partial class Form1 : Form
 
         _game.Update(dt);
         _panel.Invalidate();
+    }
+
+    /// <summary>Klavye tuşunu oyun yöneticisine iletir.</summary>
+    private void Form1_KeyDown(object? sender, KeyEventArgs e)
+    {
+        _game.HandleKeyDown(e.KeyCode);
+        e.Handled = true;
+        e.SuppressKeyPress = true; // Windows "ding" sesini engeller
+    }
+
+    /// <summary>Fare tıklamasını dünya koordinatına çevirip iletir.</summary>
+    private void Panel_MouseDown(object? sender, MouseEventArgs e)
+    {
+        if (e.Button == MouseButtons.Left)
+            _game.HandleMouseDown(_panel.ToWorld(e.Location));
     }
 }
