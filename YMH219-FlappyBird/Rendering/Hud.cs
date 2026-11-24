@@ -84,7 +84,7 @@ public class Hud
     private string _toastText = "";
     private float _toastTime;
 
-    /// <summary>Ekranın altında kısa süreli bilgi mesajı (ör. "Ses kapalı").</summary>
+    /// <summary>Ekranın üstünde kısa süreli bilgi mesajı (ör. "Ses kapalı").</summary>
     public void ShowToast(string text)
     {
         _toastText = text;
@@ -95,8 +95,9 @@ public class Hud
     {
         if (_toastTime <= 0) return;
         float alpha = Math.Min(1f, _toastTime / 0.3f);
-        var r = new RectangleF(GameSettings.WorldWidth / 2f - 80, GameSettings.GroundY - 60, 160, 38);
-        using (GraphicsPath path = DrawingHelper.RoundedRect(r, 19))
+        // Üst ortadaki boş alan: seviye/en iyi kapsüllerinin arası (butonlarla çakışmaz)
+        var r = new RectangleF(GameSettings.WorldWidth / 2f - 80, 12, 160, 32);
+        using (GraphicsPath path = DrawingHelper.RoundedRect(r, 16))
         using (var fill = new SolidBrush(Color.FromArgb((int)(200 * alpha), 20, 25, 45)))
             g.FillPath(fill, path);
         DrawingHelper.DrawOutlinedText(g, _toastText, 17f, new PointF(r.X + r.Width / 2f, r.Y + r.Height / 2f + 1),
