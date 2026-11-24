@@ -21,6 +21,23 @@ public class ScoreManager
     /// <summary>Bu oyunda en yüksek skor geçildi mi?</summary>
     public bool IsNewRecord { get; private set; }
 
+    // Madalya eşikleri
+    public const int BronzeScore = 10;
+    public const int SilverScore = 20;
+    public const int GoldScore = 30;
+
+    /// <summary>Şu anki skora göre kazanılan madalya.</summary>
+    public Medal Medal => GetMedal(Score);
+
+    /// <summary>Verilen skor için madalyayı döndürür.</summary>
+    public static Medal GetMedal(int score) => score switch
+    {
+        >= GoldScore => Medal.Gold,
+        >= SilverScore => Medal.Silver,
+        >= BronzeScore => Medal.Bronze,
+        _ => Medal.None
+    };
+
     /// <summary>Yeni oyun için skoru sıfırlar; en yüksek skoru dışarıdan alır.</summary>
     public void Reset(int highScore)
     {

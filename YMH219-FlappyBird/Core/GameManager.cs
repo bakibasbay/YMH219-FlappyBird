@@ -53,6 +53,10 @@ public class GameManager
     private readonly Background _background = new();
     private readonly ParticleSystem _particles = new();
     private readonly ScreenEffects _effects = new();
+    private readonly GameOverPanel _gameOverPanel = new();
+
+    // Çarpışmadan sonra geçen süre (panel kuş düştükten sonra açılır)
+    private float _gameOverTimer;
 
     public GameManager()
     {
@@ -64,6 +68,8 @@ public class GameManager
         _menu.StartRequested += StartNewGame;
         _menu.ExitRequested += () => ExitRequested?.Invoke(this, EventArgs.Empty);
         _menu.DifficultySelected += SetDifficulty;
+        _gameOverPanel.RestartRequested += StartNewGame;
+        _gameOverPanel.MenuRequested += GoToMenu;
 
         SetDifficulty(Difficulty.Normal);
         GoToMenu();
@@ -97,6 +103,7 @@ public class GameManager
         PipeSpeed = Settings.BasePipeSpeed;
         _particles.Clear();
         _background.SetLevel(1);
+        _gameOverPanel.Hide();
     }
 
     /// <summary>
@@ -111,6 +118,7 @@ public class GameManager
         _particles.Clear();
         _effects.Reset();
         _hud.Reset();
+        _gameOverPanel.Hide();
         _background.SetLevel(1); // gökyüzü gündüze döner
         State = GameState.Ready;
     }
@@ -128,6 +136,7 @@ public class GameManager
     private void GameOver()
     {
         State = GameState.GameOver;
+        _gameOverTimer = 0;
         Bird.Die();
 
         // Çarpışma efektleri: patlama, ekran sarsıntısı ve beyaz flaş
@@ -215,7 +224,9 @@ public class GameManager
                 break;
 
             case GameState.GameOver:
-                if (key == Keys.R || key == Keys.Enter) StartNewGame();
+                // R her zaman; Enter/Space yalnızca panel hazır olunca (yanlışlıkla basmayı önler)
+                if (key == Keys.R) StartNewGame();
+                else if ((key == Keys.Enter || key == Keys.Space) && _gameOverPanel.AcceptsInput) StartNewGame();
                 else if (key == Keys.Escape) GoToMenu();
                 break;
         }
@@ -233,14 +244,19 @@ public class GameManager
             case GameState.Playing:
                 Flap();
                 break;
+            case GameState.GameOver:
+                _gameOverPanel.HandleClick(worldPoint);
+                break;
         }
     }
 
-    /// <summary>Fare hareketi: menü butonlarının üzerine gelme efekti.</summary>
+    /// <summary>Fare hareketi: butonların üzerine gelme efekti.</summary>
     public void HandleMouseMove(PointF worldPoint)
     {
         if (State == GameState.Menu)
             _menu.HandleMouseMove(worldPoint);
+        else if (State == GameState.GameOver)
+            _gameOverPanel.HandleMouseMove(worldPoint);
     }
 
     /// <summary>Zıplama eylemi: Hazır ekranındaysa oyunu başlatır.</summary>
@@ -303,6 +319,12 @@ public class GameManager
                     _particles.EmitGroundDust(Bird.CenterX, Bird.Bottom);
                     _effects.Shake(0.15f, 4f);
                 }
+
+                // Kuş yere indikten kısa süre sonra (en geç 1 sn) sonuç paneli açılır
+                _gameOverTimer += dt;
+                if (!_gameOverPanel.IsVisible && (_gameOverTimer > 1f || (Bird.IsOnGround && _gameOverTimer > 0.45f)))
+                    _gameOverPanel.Show(Score.Score, Score.HighScore, Score.IsNewRecord, Score.Medal);
+                _gameOverPanel.Update(dt);
                 break;
 
             // Paused: hiçbir şey ilerlemez
@@ -407,7 +429,8 @@ public class GameManager
         // Oyun ekranlarında ortak HUD: seviye, en iyi skor ve büyük skor
         string difficulty = Settings.Difficulty.ToString().ToUpper(new System.Globalization.CultureInfo("tr-TR"));
         _hud.DrawTopBar(g, Score.Level, Score.HighScore, difficulty);
-        _hud.DrawScore(g, Score.Score);
+        if (!_gameOverPanel.IsVisible)
+            _hud.DrawScore(g, Score.Score); // panel açıkken skor panelde gösterilir
 
         switch (State)
         {
@@ -424,10 +447,7 @@ public class GameManager
                 break;
 
             case GameState.GameOver:
-                DrawingHelper.DrawOutlinedText(g, "OYUN BİTTİ", 50f, new PointF(GameSettings.WorldWidth / 2f, 250),
-                    Color.FromArgb(255, 120, 80), Color.FromArgb(70, 20, 10), 9f);
-                DrawingHelper.DrawOutlinedText(g, "R: Yeniden Başlat    Esc: Menü", 20f, new PointF(GameSettings.WorldWidth / 2f, 310),
-                    Color.White, Color.FromArgb(160, 0, 0, 0), 4f, heavy: false);
+                _gameOverPanel.Draw(g);
                 break;
         }
     }
