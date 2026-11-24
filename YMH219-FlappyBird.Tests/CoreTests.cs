@@ -41,17 +41,6 @@ public class CoreTests
         Assert.Equal(3, score.HighScore);
     }
 
-    [Fact]
-    public void OtopilotluOyundaRekorSayilmaz()
-    {
-        var score = new ScoreManager();
-        score.Reset(1);
-        score.MarkAssisted();
-        for (int i = 0; i < 5; i++) score.AddPoint();
-        Assert.False(score.IsNewRecord);
-        Assert.Equal(1, score.HighScore);
-    }
-
     [Theory]
     [InlineData(0, Medal.None)]
     [InlineData(9, Medal.None)]

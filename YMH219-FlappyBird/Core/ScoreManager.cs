@@ -38,28 +38,13 @@ public class ScoreManager
         _ => Medal.None
     };
 
-    /// <summary>Bu oyunda otopilot kullanıldı mı? (Kullanıldıysa rekor sayılmaz.)</summary>
-    public bool IsAssisted { get; private set; }
-
-    // Oyun başındaki kayıtlı rekor (otopilot açılırsa geri dönmek için)
-    private int _savedHighScore;
-
     /// <summary>Yeni oyun için skoru sıfırlar; en yüksek skoru dışarıdan alır.</summary>
     public void Reset(int highScore)
     {
         Score = 0;
         Level = 1;
-        HighScore = _savedHighScore = highScore;
+        HighScore = highScore;
         IsNewRecord = false;
-        IsAssisted = false;
-    }
-
-    /// <summary>Otopilot açıldı: bu oyunun skoru rekor olarak sayılmaz.</summary>
-    public void MarkAssisted()
-    {
-        IsAssisted = true;
-        IsNewRecord = false;
-        HighScore = _savedHighScore;
     }
 
     /// <summary>
@@ -70,7 +55,7 @@ public class ScoreManager
         Score++;
 
         // Rekor kırıldıysa en yüksek skoru anında güncelle
-        if (Score > HighScore && !IsAssisted)
+        if (Score > HighScore)
         {
             HighScore = Score;
             IsNewRecord = true;

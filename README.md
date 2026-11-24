@@ -61,7 +61,6 @@ dotnet test
 | `M` | Sesi aç / kapat |
 | `←` / `→` veya `1` `2` `3` | Menüde zorluk seçimi |
 | `Enter` | Menüde başla, oyun bitince yeniden başlat |
-| `F2` | Demo otopilotu aç / kapat (bu oyunun skoru rekor sayılmaz) |
 
 ## Özellikler
 
@@ -105,8 +104,7 @@ YMH219-FlappyBird/
 │   │   ├── GameSettings.cs            # Zorluğa göre fizik ve hız ayarları
 │   │   ├── Difficulty.cs              # Kolay / Normal / Zor
 │   │   ├── ScoreManager.cs            # Skor, seviye, en yüksek skor, madalya
-│   │   ├── Medal.cs                   # Bronz / Gümüş / Altın
-│   │   └── Autopilot.cs               # F2 demo otopilotu
+│   │   └── Medal.cs                   # Bronz / Gümüş / Altın
 │   ├── Entities/
 │   │   ├── GameObject.cs              # Soyut temel sınıf
 │   │   ├── Bird.cs, Pipe.cs, PipePair.cs, Cloud.cs
@@ -152,19 +150,16 @@ YMH219-FlappyBird/
 ### Game Over paneli ve altın madalya
 ![Game Over](screenshots/screenshot3.png)
 
-> 2. ve 3. görüntüler, ekran görüntüsü alınabilmesi için **F2 demo otopilotu** açıkken alınmıştır; bu yüzden HUD'da "OTOPİLOT" etiketi görünür ve skor rekor olarak kaydedilmemiştir.
-
 ## Testler
 
-`YMH219-FlappyBird.Tests` projesinde 34 birim testi vardır (`dotnet test`):
-- Skor artışı, her 5 puanda seviye atlama, rekor ve otopilot skoru
+`YMH219-FlappyBird.Tests` projesinde 29 birim testi vardır (`dotnet test`):
+- Skor artışı, her 5 puanda seviye atlama, rekor güncelleme
 - Madalya eşikleri (10 / 20 / 30)
 - Zorluk ayarlarının farkı, seviyeye göre hız artışı ve üst sınır
 - Kuşun zıplaması, yer çekimi, zeminde durması, hitbox'ın gövdeden küçük olması
 - Boru çiftinde boşluk/boru çarpışması ve ekrandan çıkma
 - En yüksek skorun dosyaya yazılıp okunması, düşük skorun rekoru ezmemesi, bozuk dosyada çökmeme
-- Durum makinesi: Menü → Hazır → Oynanıyor, duraklatma, R ile yeniden başlatma, Esc ile menü
-- Boruların yeniden konumlanması ve otopilotla boru geçişi (pencere açmadan simülasyon)
+- Durum makinesi: Menü → Hazır → Oynanıyor, duraklatma, R ile yeniden başlatma, Esc ile menü (pencere açmadan simülasyon)
 
 ## Bilinen Sınırlamalar / Geliştirme Notları
 
@@ -172,7 +167,6 @@ YMH219-FlappyBird/
 - `SoundPlayer` aynı anda tek ses çalar; art arda gelen sesler birbirini keser (ör. zıplama sesi skor sesini).
 - En yüksek skor kullanıcı profilindeki `%AppData%` klasöründe tutulur; başka bir bilgisayarda sıfırdan başlar. Dosya bozulursa skorlar 0 kabul edilir.
 - Pencere boyutu ekran ölçeğine göre ayarlanır, yeniden boyutlandırılamaz (oyun 480×720 mantıksal alanda çizilir).
-- Otopilot (F2) yalnızca demo/test amaçlıdır ve kusursuz değildir; özellikle Zor modda yüksek hızlarda hata yapabilir.
 - Olası geliştirmeler: tam ekran modu, farklı kuş kostümleri, çevrim içi skor tablosu, ses seviyesi ayarı.
 
 ## Öğrenci

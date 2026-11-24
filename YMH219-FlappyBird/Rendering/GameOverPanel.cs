@@ -40,7 +40,6 @@ public class GameOverPanel
     private int _best;
     private bool _newRecord;
     private Medal _medal;
-    private bool _assisted; // otopilot kullanıldı mı
 
     public GameOverPanel()
     {
@@ -51,9 +50,8 @@ public class GameOverPanel
     }
 
     /// <summary>Paneli verilen sonuçlarla açar ve animasyonu baştan başlatır.</summary>
-    public void Show(int score, int best, bool newRecord, Medal medal, bool assisted = false)
+    public void Show(int score, int best, bool newRecord, Medal medal)
     {
-        _assisted = assisted;
         _score = score;
         _best = best;
         _newRecord = newRecord;
@@ -100,12 +98,6 @@ public class GameOverPanel
         DrawingHelper.DrawOutlinedText(g, "R / Enter: Yeniden    Esc: Menü", 16f,
             new PointF(GameSettings.WorldWidth / 2f, 556),
             DrawingHelper.WithAlpha(Color.White, buttonAlpha), Color.FromArgb((int)(160 * buttonAlpha), 0, 0, 0), 3.5f, heavy: false);
-        if (_assisted)
-        {
-            DrawingHelper.DrawOutlinedText(g, "Otopilot kullanıldı: skor rekor sayılmaz", 14f,
-                new PointF(GameSettings.WorldWidth / 2f, 582),
-                DrawingHelper.WithAlpha(Color.FromArgb(150, 255, 200), buttonAlpha), Color.FromArgb((int)(160 * buttonAlpha), 0, 0, 0), 3.5f, heavy: false);
-        }
     }
 
     /// <summary>"OYUN BİTTİ" yazısı yukarıdan sekerek düşer.</summary>
