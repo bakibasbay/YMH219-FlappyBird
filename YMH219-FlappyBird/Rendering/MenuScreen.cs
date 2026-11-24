@@ -101,9 +101,6 @@ public class MenuScreen
     {
         DrawTitle(g);
 
-        DrawingHelper.DrawOutlinedText(g, "Flappy tarzı bir YMH219 oyunu", 17f,
-            new PointF(GameSettings.WorldWidth / 2f, 182), Color.White, Color.FromArgb(160, 40, 60, 90), 4f, heavy: false);
-
         // Butonların arkasındaki yarı saydam kart
         var card = new RectangleF(36, 300, GameSettings.WorldWidth - 72, 316);
         using (GraphicsPath cardPath = DrawingHelper.RoundedRect(card, 22))

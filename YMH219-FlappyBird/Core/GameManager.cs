@@ -105,7 +105,8 @@ public class GameManager
     public void GoToMenu()
     {
         State = GameState.Menu;
-        Bird.ResetTo(GameSettings.WorldWidth / 2f - Bird.DefaultWidth / 2f, 225f);
+        // Kuş, başlığın alt kenarı (~150) ile menü kartının üstü (300) arasında ortalanır
+        Bird.ResetTo(GameSettings.WorldWidth / 2f - Bird.DefaultWidth / 2f, 225f - Bird.DefaultHeight / 2f);
         PipeSpeed = Settings.BasePipeSpeed;
         _particles.Clear();
         _background.SetLevel(1);
