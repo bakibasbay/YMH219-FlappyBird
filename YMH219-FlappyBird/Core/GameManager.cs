@@ -1,10 +1,12 @@
 using System.Drawing.Drawing2D;
 using FlappyBird.Entities;
+using FlappyBird.Rendering;
 
 namespace FlappyBird.Core;
 
 /// <summary>
-/// Oyunun beyni: oyun döngüsünü (Update/Draw) ve oyun durumunu yönetir.
+/// Oyunun beyni: oyun döngüsünü (Update/Draw) ve durum makinesini yönetir.
+/// Durumlar: Menu → Ready → Playing ⇄ Paused → GameOver → (Ready | Menu)
 /// Form yalnızca girdileri buraya iletir ve her karede Update + Draw çağırır.
 /// </summary>
 public class GameManager
@@ -13,15 +15,6 @@ public class GameManager
     public const float BirdStartX = 110f;
     public const float BirdStartY = 320f;
 
-    /// <summary>Oyunun şu anki durumu.</summary>
-    public GameState State { get; private set; } = GameState.Ready;
-
-    /// <summary>Aktif fizik/hız ayarları.</summary>
-    public GameSettings Settings { get; private set; } = new();
-
-    /// <summary>Oyuncunun kuşu.</summary>
-    public Bird Bird { get; }
-
     /// <summary>Ekranda aynı anda dolaşan boru çifti sayısı (föy: en az 2).</summary>
     public const int PipePairCount = 3;
 
@@ -29,6 +22,15 @@ public class GameManager
     private const float GapMargin = 60f;
     // Ardışık iki boşluk arasındaki en büyük yükseklik farkı (adil oyun için)
     private const float MaxGapShift = 190f;
+
+    /// <summary>Oyunun şu anki durumu.</summary>
+    public GameState State { get; private set; } = GameState.Menu;
+
+    /// <summary>Aktif fizik/hız ayarları.</summary>
+    public GameSettings Settings { get; private set; } = new();
+
+    /// <summary>Oyuncunun kuşu.</summary>
+    public Bird Bird { get; }
 
     /// <summary>Sağdan sola kayan boru çiftleri.</summary>
     public List<PipePair> Pipes { get; } = new();
@@ -42,16 +44,34 @@ public class GameManager
     /// <summary>Oyun başladığından beri geçen toplam süre (animasyonlar için).</summary>
     public float TotalTime { get; private set; }
 
+    /// <summary>Menüden "Çıkış" seçildiğinde form kapanması için tetiklenir.</summary>
+    public event EventHandler? ExitRequested;
+
     private readonly Random _random = new();
+    private readonly MenuScreen _menu = new();
+    private readonly Hud _hud = new();
 
     public GameManager()
     {
         Bird = new Bird(BirdStartX, BirdStartY);
-        ApplySettingsToBird();
 
         for (int i = 0; i < PipePairCount; i++)
             Pipes.Add(new PipePair(0, GameSettings.GroundY / 2f, Settings.PipeGap));
-        StartNewGame();
+
+        _menu.StartRequested += StartNewGame;
+        _menu.ExitRequested += () => ExitRequested?.Invoke(this, EventArgs.Empty);
+
+        GoToMenu();
+    }
+
+    // ================= Durum geçişleri =================
+
+    /// <summary>Ana menüye döner; kuş menünün ortasında süzülür.</summary>
+    public void GoToMenu()
+    {
+        State = GameState.Menu;
+        Bird.ResetTo(GameSettings.WorldWidth / 2f - Bird.DefaultWidth / 2f, 225f);
+        PipeSpeed = Settings.BasePipeSpeed;
     }
 
     /// <summary>
@@ -65,6 +85,31 @@ public class GameManager
         Score.Reset(Score.HighScore);
         State = GameState.Ready;
     }
+
+    /// <summary>Oynanıyorsa duraklatır, duraklatılmışsa devam ettirir.</summary>
+    public void TogglePause()
+    {
+        if (State == GameState.Playing)
+            State = GameState.Paused;
+        else if (State == GameState.Paused)
+            State = GameState.Playing;
+    }
+
+    /// <summary>Oyunu durdurur ve Game Over durumuna geçer.</summary>
+    private void GameOver()
+    {
+        State = GameState.GameOver;
+        Bird.Die();
+    }
+
+    private void ApplySettingsToBird()
+    {
+        Bird.Gravity = Settings.Gravity;
+        Bird.JumpVelocity = Settings.JumpVelocity;
+        Bird.MaxFallSpeed = Settings.MaxFallSpeed;
+    }
+
+    // ================= Borular =================
 
     /// <summary>Boruları ekranın sağına, eşit aralıklarla diz.</summary>
     private void ResetPipes()
@@ -104,28 +149,59 @@ public class GameManager
         pair.Reposition(last.X + Settings.PipeSpacing, RandomGapCenter(last.GapCenterY), Settings.PipeGap);
     }
 
-    private void ApplySettingsToBird()
-    {
-        Bird.Gravity = Settings.Gravity;
-        Bird.JumpVelocity = Settings.JumpVelocity;
-        Bird.MaxFallSpeed = Settings.MaxFallSpeed;
-    }
+    // ================= Girdi =================
 
-    // ---------------- Girdi ----------------
-
-    /// <summary>Klavye tuşlarını işler (Form KeyDown olayından çağrılır).</summary>
+    /// <summary>Klavye tuşlarını duruma göre işler (Form KeyDown olayından çağrılır).</summary>
     public void HandleKeyDown(Keys key)
     {
-        if (key == Keys.Space || key == Keys.Up)
-            Flap();
-        else if (key == Keys.R)
-            StartNewGame();
+        switch (State)
+        {
+            case GameState.Menu:
+                if (key == Keys.Enter || key == Keys.Space) StartNewGame();
+                else if (key == Keys.Escape) ExitRequested?.Invoke(this, EventArgs.Empty);
+                break;
+
+            case GameState.Ready:
+            case GameState.Playing:
+                if (key == Keys.Space || key == Keys.Up) Flap();
+                else if (key == Keys.P) TogglePause();
+                else if (key == Keys.R) StartNewGame();
+                else if (key == Keys.Escape) GoToMenu();
+                break;
+
+            case GameState.Paused:
+                if (key == Keys.P) TogglePause();
+                else if (key == Keys.R) StartNewGame();
+                else if (key == Keys.Escape) GoToMenu();
+                break;
+
+            case GameState.GameOver:
+                if (key == Keys.R || key == Keys.Enter) StartNewGame();
+                else if (key == Keys.Escape) GoToMenu();
+                break;
+        }
     }
 
     /// <summary>Fare tıklamasını işler (dünya koordinatında).</summary>
     public void HandleMouseDown(PointF worldPoint)
     {
-        Flap();
+        switch (State)
+        {
+            case GameState.Menu:
+                _menu.HandleClick(worldPoint);
+                break;
+            case GameState.Ready:
+            case GameState.Playing:
+                Flap();
+                break;
+        }
+    }
+
+    /// <summary>Fare hareketi: menü butonlarının üzerine gelme efekti.</summary>
+    public void HandleMouseMove(PointF worldPoint)
+    {
+        if (State == GameState.Menu)
+            _menu.HandleMouseMove(worldPoint);
     }
 
     /// <summary>Zıplama eylemi: Hazır ekranındaysa oyunu başlatır.</summary>
@@ -138,7 +214,7 @@ public class GameManager
             Bird.Jump();
     }
 
-    // ---------------- Döngü ----------------
+    // ================= Döngü =================
 
     /// <summary>
     /// Bir kare ilerletir. dt: önceki kareden bu yana geçen süre (saniye).
@@ -147,18 +223,39 @@ public class GameManager
     public void Update(float dt)
     {
         TotalTime += dt;
+        _hud.Update(dt);
 
-        if (State == GameState.Playing)
+        switch (State)
         {
-            Bird.Update(dt);
-            UpdatePipes(dt);
-            CheckScore();
-            CheckCollisions();
+            case GameState.Menu:
+                _menu.Update(dt);
+                break;
+
+            case GameState.Playing:
+                Bird.Update(dt);
+                UpdatePipes(dt);
+                CheckScore();
+                CheckCollisions();
+                break;
+
+            case GameState.GameOver:
+                // Ölen kuş zemine kadar düşmeye devam eder
+                Bird.Update(dt);
+                break;
+
+            // Ready: kuş süzülür; Paused: hiçbir şey ilerlemez
         }
-        else if (State == GameState.GameOver)
+    }
+
+    /// <summary>Boruları kaydırır, ekrandan çıkanları yeniden konumlandırır.</summary>
+    private void UpdatePipes(float dt)
+    {
+        foreach (PipePair pair in Pipes)
         {
-            // Ölen kuş zemine kadar düşmeye devam eder
-            Bird.Update(dt);
+            pair.Speed = PipeSpeed;
+            pair.Update(dt);
+            if (pair.IsOffScreen)
+                RecyclePipe(pair);
         }
     }
 
@@ -190,24 +287,7 @@ public class GameManager
             GameOver();
     }
 
-    /// <summary>Oyunu durdurur ve Game Over durumuna geçer.</summary>
-    private void GameOver()
-    {
-        State = GameState.GameOver;
-        Bird.Die();
-    }
-
-    /// <summary>Boruları kaydırır, ekrandan çıkanları yeniden konumlandırır.</summary>
-    private void UpdatePipes(float dt)
-    {
-        foreach (PipePair pair in Pipes)
-        {
-            pair.Speed = PipeSpeed;
-            pair.Update(dt);
-            if (pair.IsOffScreen)
-                RecyclePipe(pair);
-        }
-    }
+    // ================= Çizim =================
 
     /// <summary>Tüm sahneyi verilen Graphics nesnesine çizer.</summary>
     public void Draw(Graphics g)
@@ -220,8 +300,11 @@ public class GameManager
             g.FillRectangle(sky, skyRect);
         }
 
-        foreach (PipePair pair in Pipes)
-            pair.Draw(g);
+        if (State != GameState.Menu)
+        {
+            foreach (PipePair pair in Pipes)
+                pair.Draw(g);
+        }
 
         // Zemin (boruların alt ucunu örter)
         using (var ground = new SolidBrush(Color.FromArgb(222, 200, 140)))
@@ -231,11 +314,39 @@ public class GameManager
 
         Bird.Draw(g);
 
-        // Geçici basit skor ve Game Over yazısı
-        using var font = new Font("Segoe UI", 28, FontStyle.Bold, GraphicsUnit.Pixel);
-        var center = new StringFormat { Alignment = StringAlignment.Center };
-        g.DrawString(Score.Score.ToString(), font, Brushes.White, GameSettings.WorldWidth / 2, 30, center);
-        if (State == GameState.GameOver)
-            g.DrawString("OYUN BİTTİ\nR: Yeniden Başlat", font, Brushes.White, GameSettings.WorldWidth / 2, 260, center);
+        DrawOverlay(g);
+    }
+
+    /// <summary>Duruma göre menü, HUD ve bilgi katmanlarını çizer.</summary>
+    private void DrawOverlay(Graphics g)
+    {
+        switch (State)
+        {
+            case GameState.Menu:
+                _menu.Draw(g);
+                break;
+
+            case GameState.Ready:
+                _hud.DrawScore(g, Score.Score);
+                _hud.DrawReady(g);
+                break;
+
+            case GameState.Playing:
+                _hud.DrawScore(g, Score.Score);
+                break;
+
+            case GameState.Paused:
+                _hud.DrawScore(g, Score.Score);
+                _hud.DrawPaused(g);
+                break;
+
+            case GameState.GameOver:
+                _hud.DrawScore(g, Score.Score);
+                DrawingHelper.DrawOutlinedText(g, "OYUN BİTTİ", 50f, new PointF(GameSettings.WorldWidth / 2f, 250),
+                    Color.FromArgb(255, 120, 80), Color.FromArgb(70, 20, 10), 9f);
+                DrawingHelper.DrawOutlinedText(g, "R: Yeniden Başlat    Esc: Menü", 20f, new PointF(GameSettings.WorldWidth / 2f, 310),
+                    Color.White, Color.FromArgb(160, 0, 0, 0), 4f, heavy: false);
+                break;
+        }
     }
 }

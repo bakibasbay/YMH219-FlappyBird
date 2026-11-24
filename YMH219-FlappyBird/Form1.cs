@@ -38,6 +38,10 @@ public partial class Form1 : Form
         // Girdi olayları: klavye form üzerinden (KeyPreview), fare panel üzerinden
         KeyDown += Form1_KeyDown;
         _panel.MouseDown += Panel_MouseDown;
+        _panel.MouseMove += (_, e) => _game.HandleMouseMove(_panel.ToWorld(e.Location));
+
+        // Menüden Çıkış seçilince pencereyi kapat
+        _game.ExitRequested += (_, _) => Close();
 
         Shown += (_, _) =>
         {
