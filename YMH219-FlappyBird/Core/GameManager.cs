@@ -50,6 +50,7 @@ public class GameManager
     private readonly Random _random = new();
     private readonly MenuScreen _menu = new();
     private readonly Hud _hud = new();
+    private readonly Background _background = new();
 
     public GameManager()
     {
@@ -250,6 +251,13 @@ public class GameManager
         TotalTime += dt;
         _hud.Update(dt);
 
+        // Arka plan: duraklatmada donar, oyun bitince zemin durur (bulutlar süzülmeye devam eder)
+        if (State != GameState.Paused)
+        {
+            float scroll = State == GameState.GameOver ? 0f : PipeSpeed;
+            _background.Update(dt, scroll);
+        }
+
         switch (State)
         {
             case GameState.Menu:
@@ -317,13 +325,8 @@ public class GameManager
     /// <summary>Tüm sahneyi verilen Graphics nesnesine çizer.</summary>
     public void Draw(Graphics g)
     {
-        // Gökyüzü: yukarıdan aşağıya dikey gradyan
-        var skyRect = new RectangleF(0, 0, GameSettings.WorldWidth, GameSettings.GroundY);
-        using (var sky = new LinearGradientBrush(skyRect, Color.FromArgb(74, 168, 240),
-                   Color.FromArgb(190, 232, 255), LinearGradientMode.Vertical))
-        {
-            g.FillRectangle(sky, skyRect);
-        }
+        // Katman sırası: gökyüzü/parallax → borular → zemin → gece tonu → kuş → arayüz
+        _background.DrawSky(g);
 
         if (State != GameState.Menu)
         {
@@ -331,11 +334,8 @@ public class GameManager
                 pair.Draw(g);
         }
 
-        // Zemin (boruların alt ucunu örter)
-        using (var ground = new SolidBrush(Color.FromArgb(222, 200, 140)))
-        {
-            g.FillRectangle(ground, 0, GameSettings.GroundY, GameSettings.WorldWidth, GameSettings.GroundHeight);
-        }
+        _background.DrawGround(g);
+        _background.DrawNightTint(g);
 
         Bird.Draw(g);
 
