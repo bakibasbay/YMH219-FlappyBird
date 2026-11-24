@@ -331,6 +331,7 @@ public class GameManager
                 pair.Scored = true;
                 bool levelUp = Score.AddPoint();
                 _particles.EmitScoreSparkle(Bird.CenterX + 10, Bird.Y - 4);
+                _hud.TriggerScorePop();
                 if (levelUp)
                     OnLevelUp();
             }
@@ -397,29 +398,32 @@ public class GameManager
     /// <summary>Duruma göre menü, HUD ve bilgi katmanlarını çizer.</summary>
     private void DrawOverlay(Graphics g)
     {
+        if (State == GameState.Menu)
+        {
+            _menu.Draw(g);
+            return;
+        }
+
+        // Oyun ekranlarında ortak HUD: seviye, en iyi skor ve büyük skor
+        string difficulty = Settings.Difficulty.ToString().ToUpper(new System.Globalization.CultureInfo("tr-TR"));
+        _hud.DrawTopBar(g, Score.Level, Score.HighScore, difficulty);
+        _hud.DrawScore(g, Score.Score);
+
         switch (State)
         {
-            case GameState.Menu:
-                _menu.Draw(g);
-                break;
-
             case GameState.Ready:
-                _hud.DrawScore(g, Score.Score);
                 _hud.DrawReady(g);
                 break;
 
             case GameState.Playing:
-                _hud.DrawScore(g, Score.Score);
                 _hud.DrawLevelBanner(g);
                 break;
 
             case GameState.Paused:
-                _hud.DrawScore(g, Score.Score);
                 _hud.DrawPaused(g);
                 break;
 
             case GameState.GameOver:
-                _hud.DrawScore(g, Score.Score);
                 DrawingHelper.DrawOutlinedText(g, "OYUN BİTTİ", 50f, new PointF(GameSettings.WorldWidth / 2f, 250),
                     Color.FromArgb(255, 120, 80), Color.FromArgb(70, 20, 10), 9f);
                 DrawingHelper.DrawOutlinedText(g, "R: Yeniden Başlat    Esc: Menü", 20f, new PointF(GameSettings.WorldWidth / 2f, 310),

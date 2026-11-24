@@ -17,16 +17,49 @@ public class Hud
     private float _levelBannerTime; // "SEVİYE n!" yazısının kalan gösterim süresi
     private int _bannerLevel;
 
+    private const float PopDuration = 0.3f;
+    private float _popTime; // skor "pop" animasyonunun kalan süresi
+
     public void Update(float dt)
     {
         _time += dt;
         _levelBannerTime = Math.Max(0, _levelBannerTime - dt);
+        _popTime = Math.Max(0, _popTime - dt);
     }
 
     /// <summary>Yeni oyunda animasyonları sıfırlar.</summary>
     public void Reset()
     {
         _levelBannerTime = 0;
+        _popTime = 0;
+    }
+
+    /// <summary>Skor arttığında skor yazısını kısa süre büyütür.</summary>
+    public void TriggerScorePop() => _popTime = PopDuration;
+
+    /// <summary>
+    /// Üst köşelerdeki bilgi kapsülleri: solda seviye ve zorluk, sağda en yüksek skor.
+    /// </summary>
+    public void DrawTopBar(Graphics g, int level, int highScore, string difficulty)
+    {
+        DrawPill(g, new RectangleF(12, 12, 112, 32), $"SEVİYE {level}", Color.FromArgb(60, 135, 220));
+        DrawingHelper.DrawOutlinedText(g, difficulty, 13f, new PointF(68, 56),
+            Color.White, Color.FromArgb(150, 20, 30, 60), 3f, heavy: false, shadow: false);
+
+        var bestRect = new RectangleF(GameSettings.WorldWidth - 124, 12, 112, 32);
+        DrawPill(g, bestRect, $"EN İYİ {highScore}", Color.FromArgb(235, 160, 40));
+    }
+
+    /// <summary>Yarı saydam, yuvarlak uçlu bilgi kapsülü.</summary>
+    private static void DrawPill(Graphics g, RectangleF r, string text, Color color)
+    {
+        using GraphicsPath path = DrawingHelper.RoundedRect(r, r.Height / 2f);
+        using (var fill = new SolidBrush(Color.FromArgb(190, color)))
+            g.FillPath(fill, path);
+        using (var pen = new Pen(Color.FromArgb(220, 255, 255, 255), 2f))
+            g.DrawPath(pen, path);
+        DrawingHelper.DrawOutlinedText(g, text, 15f, new PointF(r.X + r.Width / 2f, r.Y + r.Height / 2f + 1),
+            Color.White, DrawingHelper.Darken(color, 0.55f), 3.5f, shadow: false);
     }
 
     /// <summary>Ekranın ortasında kısa süreli "SEVİYE n!" yazısı başlatır.</summary>
@@ -57,11 +90,21 @@ public class Hud
         g.Restore(state);
     }
 
-    /// <summary>Ekranın üst ortasında büyük, konturlu skor.</summary>
+    /// <summary>
+    /// Ekranın üst ortasında büyük, konturlu skor. Skor alınınca önce
+    /// büyüyüp altın rengine döner, sonra hızla normale iner ("pop").
+    /// </summary>
     public void DrawScore(Graphics g, int score)
     {
-        DrawingHelper.DrawOutlinedText(g, score.ToString(), 64f,
-            new PointF(GameSettings.WorldWidth / 2f, 70), Color.White, OutlineDark, 10f);
+        float k = _popTime / PopDuration;           // 1 → 0
+        float scale = 1f + 0.5f * k * k;            // 1.5 → 1.0
+        Color fill = DrawingHelper.Lerp(Color.White, Color.FromArgb(255, 220, 70), k);
+
+        GraphicsState state = g.Save();
+        g.TranslateTransform(GameSettings.WorldWidth / 2f, 96);
+        g.ScaleTransform(scale, scale);
+        DrawingHelper.DrawOutlinedText(g, score.ToString(), 64f, PointF.Empty, fill, OutlineDark, 10f);
+        g.Restore(state);
     }
 
     /// <summary>Hazır ekranı: başlık ve "SPACE / tıkla" ipucu.</summary>
