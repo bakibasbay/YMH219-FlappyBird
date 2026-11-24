@@ -36,6 +36,9 @@ public class GameManager
     /// <summary>Boruların (ve zeminin) şu anki kayma hızı.</summary>
     public float PipeSpeed { get; private set; }
 
+    /// <summary>Skor, seviye ve en yüksek skor.</summary>
+    public ScoreManager Score { get; } = new();
+
     /// <summary>Oyun başladığından beri geçen toplam süre (animasyonlar için).</summary>
     public float TotalTime { get; private set; }
 
@@ -48,7 +51,19 @@ public class GameManager
 
         for (int i = 0; i < PipePairCount; i++)
             Pipes.Add(new PipePair(0, GameSettings.GroundY / 2f, Settings.PipeGap));
+        StartNewGame();
+    }
+
+    /// <summary>
+    /// Yeni oyun: kuş, borular ve skor sıfırlanır, Hazır ekranına geçilir.
+    /// </summary>
+    public void StartNewGame()
+    {
+        ApplySettingsToBird();
+        Bird.ResetTo(BirdStartX, BirdStartY);
         ResetPipes();
+        Score.Reset(Score.HighScore);
+        State = GameState.Ready;
     }
 
     /// <summary>Boruları ekranın sağına, eşit aralıklarla diz.</summary>
@@ -103,6 +118,8 @@ public class GameManager
     {
         if (key == Keys.Space || key == Keys.Up)
             Flap();
+        else if (key == Keys.R)
+            StartNewGame();
     }
 
     /// <summary>Fare tıklamasını işler (dünya koordinatında).</summary>
@@ -135,7 +152,49 @@ public class GameManager
         {
             Bird.Update(dt);
             UpdatePipes(dt);
+            CheckScore();
+            CheckCollisions();
         }
+        else if (State == GameState.GameOver)
+        {
+            // Ölen kuş zemine kadar düşmeye devam eder
+            Bird.Update(dt);
+        }
+    }
+
+    /// <summary>Kuş bir boru çiftinin ortasını geçtiyse +1 puan.</summary>
+    private void CheckScore()
+    {
+        foreach (PipePair pair in Pipes)
+        {
+            if (!pair.Scored && pair.CenterX < Bird.CenterX)
+            {
+                pair.Scored = true;
+                Score.AddPoint();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Çarpışma kontrolü: kuşun küçültülmüş kutusu (Hitbox) boru dikdörtgenleriyle
+    /// kesişiyorsa ya da kuş zemine/tavana değdiyse oyun biter.
+    /// </summary>
+    private void CheckCollisions()
+    {
+        RectangleF hitbox = Bird.Hitbox;
+        bool hitPipe = Pipes.Any(p => p.Collides(hitbox));
+        bool hitGround = Bird.IsOnGround;
+        bool hitCeiling = Bird.Y <= 0;
+
+        if (hitPipe || hitGround || hitCeiling)
+            GameOver();
+    }
+
+    /// <summary>Oyunu durdurur ve Game Over durumuna geçer.</summary>
+    private void GameOver()
+    {
+        State = GameState.GameOver;
+        Bird.Die();
     }
 
     /// <summary>Boruları kaydırır, ekrandan çıkanları yeniden konumlandırır.</summary>
@@ -171,5 +230,12 @@ public class GameManager
         }
 
         Bird.Draw(g);
+
+        // Geçici basit skor ve Game Over yazısı
+        using var font = new Font("Segoe UI", 28, FontStyle.Bold, GraphicsUnit.Pixel);
+        var center = new StringFormat { Alignment = StringAlignment.Center };
+        g.DrawString(Score.Score.ToString(), font, Brushes.White, GameSettings.WorldWidth / 2, 30, center);
+        if (State == GameState.GameOver)
+            g.DrawString("OYUN BİTTİ\nR: Yeniden Başlat", font, Brushes.White, GameSettings.WorldWidth / 2, 260, center);
     }
 }

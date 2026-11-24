@@ -36,6 +36,20 @@ public class Bird : GameObject
 
     public bool IsOnGround => Bottom >= GroundY - 0.5f;
 
+    /// <summary>
+    /// Çarpışma kutusu: çizilen gövdeden biraz küçük tutulur,
+    /// böylece borunun kenarını "sıyırmak" oyuncuya adil hissettirir.
+    /// </summary>
+    public RectangleF Hitbox
+    {
+        get
+        {
+            RectangleF r = Bounds;
+            r.Inflate(-6f, -5f);
+            return r;
+        }
+    }
+
     public Bird(float x, float y)
     {
         Width = DefaultWidth;
@@ -60,6 +74,15 @@ public class Bird : GameObject
         VelocityY = JumpVelocity;
     }
 
+    /// <summary>Kuş çarptı: küçük bir sekmeyle düşmeye başlar, artık zıplayamaz.</summary>
+    public void Die()
+    {
+        if (Mode == BirdMode.Dead) return;
+        Mode = BirdMode.Dead;
+        if (!IsOnGround)
+            VelocityY = -180f;
+    }
+
     public override void Update(float dt)
     {
         if (Mode == BirdMode.Hovering) return;
@@ -67,6 +90,10 @@ public class Bird : GameObject
         // Yer çekimi: hız ivme ile artar, konum hız ile değişir
         VelocityY = Math.Min(VelocityY + Gravity * dt, MaxFallSpeed);
         Y += VelocityY * dt;
+
+        // Tavanın çok üstüne çıkmasın (oyun yine de Game Over olur)
+        if (Y < -Height)
+            Y = -Height;
 
         // Zemine değince orada dur
         if (Bottom > GroundY)
